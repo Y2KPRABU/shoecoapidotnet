@@ -1,5 +1,6 @@
 using Microsoft.OpenApi.Models;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Serialization; // Add this using directive for Swagger support
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ Debug.WriteLine($"ContentRoot Path: {builder.Environment.ContentRootPath}");
 Debug.WriteLine($"WebRootPath: {builder.Environment.WebRootPath}");
 
 var app = builder.Build();
+app.Logger.LogInformation("starting appservice studentrxr");
 
 app.UseHttpsRedirection();
 
@@ -32,9 +34,28 @@ var sampleTodos = new Todo[] {
 var todosApi = app.MapGroup("/todos");
 todosApi.MapGet("/", () => sampleTodos);
 todosApi.MapGet("/{id}", (int id) =>
-    sampleTodos.FirstOrDefault(a => a.Id == id) is { } todo
+   {
+       Debug.WriteLine($"REceived a get req for student : {id}");
+       app.Logger.LogInformation($"REceived a get req for student : {id}");
+
+       return sampleTodos.FirstOrDefault(a => a.Id == id) is { } todo
         ? Results.Ok(todo)
-        : Results.NotFound());
+        : Results.NotFound();
+        });
+todosApi.MapPost("/{id}", async (HttpRequest request) =>
+{
+    Debug.WriteLine($"REceived a post req for student : ");
+    app.Logger.LogInformation($"REceived a post req for student : ");
+   var body = new StreamReader(request.Body);
+    string postData = await body.ReadToEndAsync();
+    Dictionary<string, dynamic> keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, dynamic>>(postData) ?? new Dictionary<string, dynamic>();
+// here after you can play as you like :)
+    var x = sampleTodos.FirstOrDefault(a => a.Id == 2) is { } todo
+    ? Results.Ok(todo)
+    : Results.NotFound();
+
+return await Task.FromResult<string>(postData);
+});
 
 app.Run();
 
